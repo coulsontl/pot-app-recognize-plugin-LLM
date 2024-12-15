@@ -33,18 +33,22 @@ async function recognize(base64, lang, options) {
     const body = {
         model,
         messages: [
+            // {
+            //     "role": "system",
+            //     "content": [
+            //         {
+            //             "type": "text",
+            //             "text": customPrompt
+            //         }
+            //     ],
+            // },
             {
-                "role": "system",
+                "role": "user",
                 "content": [
                     {
                         "type": "text",
                         "text": customPrompt
-                    }
-                ],
-            },
-            {
-                "role": "user",
-                "content": [
+                    },
                     {
                         "type": "image_url",
                         "image_url": {
