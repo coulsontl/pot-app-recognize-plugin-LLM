@@ -1,6 +1,5 @@
 async function recognize(base64, lang, options) {
     const { config } = options;
-    // const { tauriFetch: fetch } = utils;
     let { model = "Pro/Qwen/Qwen2-VL-7B-Instruct", apiKey, requestPath, customPrompt } = config;
 
     if (!requestPath) {
@@ -14,7 +13,6 @@ async function recognize(base64, lang, options) {
 
     // in openai like api, /v1 is not required
     if (!apiUrl.pathname.endsWith('/chat/completions')) {
-        // not openai like, populate completion endpoint
         apiUrl.pathname += apiUrl.pathname.endsWith('/') ? '' : '/';
         apiUrl.pathname += 'v1/chat/completions';
     }
@@ -33,15 +31,6 @@ async function recognize(base64, lang, options) {
     const body = {
         model,
         messages: [
-            // {
-            //     "role": "system",
-            //     "content": [
-            //         {
-            //             "type": "text",
-            //             "text": customPrompt
-            //         }
-            //     ],
-            // },
             {
                 "role": "user",
                 "content": [
@@ -71,13 +60,7 @@ async function recognize(base64, lang, options) {
         if (choices) {
             let target = choices[0].message.content.trim();
             if (target) {
-                if (target.startsWith('"')) {
-                    target = target.slice(1);
-                }
-                if (target.endsWith('"')) {
-                    target = target.slice(0, -1);
-                }
-                return target.trim();
+                return target
             } else {
                 throw JSON.stringify(choices);
             }
