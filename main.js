@@ -1,20 +1,24 @@
 async function recognize(base64, lang, options) {
-    const { config, utils } = options;
-    const { tauriFetch: fetch } = utils;
+    const { config } = options;
+    // const { tauriFetch: fetch } = utils;
     let { model = "Pro/Qwen/Qwen2-VL-7B-Instruct", apiKey, requestPath, customPrompt } = config;
 
     if (!requestPath) {
-        requestPath = "https://api.openai.com";
+        requestPath = "https://api.siliconflow.cn";
     }
+
     if (!/https?:\/\/.+/.test(requestPath)) {
         requestPath = `https://${requestPath}`;
     }
-    if (requestPath.endsWith('/')) {
-        requestPath = requestPath.slice(0, -1);
+    const apiUrl = new URL(requestPath);
+
+    // in openai like api, /v1 is not required
+    if (!apiUrl.pathname.endsWith('/chat/completions')) {
+        // not openai like, populate completion endpoint
+        apiUrl.pathname += apiUrl.pathname.endsWith('/') ? '' : '/';
+        apiUrl.pathname += 'v1/chat/completions';
     }
-    if (!requestPath.endsWith('/chat/completions')) {
-        requestPath += '/v1/chat/completions';
-    }
+
     if (!customPrompt) {
         customPrompt = "Just recognize the text in the image. Do not offer unnecessary explanations.";
     }else{
@@ -44,28 +48,40 @@ async function recognize(base64, lang, options) {
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": `data:image/png;base64,${base64}`,
-                            "detail": "high"
+                            "url": `data:image/jpeg;base64,${base64}`,
                         },
                     },
                 ],
             }
         ],
     }
-    let res = await fetch(requestPath, {
+    let res = await window.fetch(apiUrl.href, {
         method: 'POST',
-        url: requestPath,
         headers: headers,
-        body: {
-            type: "Json",
-            payload: body
-        }
+        body: JSON.stringify(body),
     });
 
     if (res.ok) {
-        let result = res.data;
-        return result.choices[0].message.content;
+        let result = await res.json();
+        const { choices } = result;
+        if (choices) {
+            let target = choices[0].message.content.trim();
+            if (target) {
+                if (target.startsWith('"')) {
+                    target = target.slice(1);
+                }
+                if (target.endsWith('"')) {
+                    target = target.slice(0, -1);
+                }
+                return target.trim();
+            } else {
+                throw JSON.stringify(choices);
+            }
+        } else {
+            throw JSON.stringify(result);
+        }
     } else {
-        throw `Http Request Error\nHttp Status: ${res.status}\n${JSON.stringify(res.data)}`;
+        const errorData = await res.json().catch(() => null);
+        throw `Http Request Error\nHttp Status: ${res.status}\n${errorData ? JSON.stringify(errorData) : 'No error details available'}`;
     }
 }
